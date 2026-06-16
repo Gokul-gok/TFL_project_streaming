@@ -182,7 +182,7 @@ pipeline {
                             --broker-list ${KAFKA_BROKER} \
                             --topic ${KAFKA_TOPIC} \
                             --time -1 2>/dev/null \
-                            | awk -F: "{sum+=\\$3} END{print \\"Total messages: \\" sum}" || true
+                            | python3 -c "import sys; lines=sys.stdin.read().strip().splitlines(); total=sum(int(l.split(':')[2]) for l in lines if l.count(':')==2); print('Total messages:',total)" || true
                     '
                 """
             }
