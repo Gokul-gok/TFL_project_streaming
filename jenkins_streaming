@@ -6,6 +6,7 @@ pipeline {
         REMOTE_HOST   = '13.41.167.97'
         REMOTE_USER   = 'ec2-user'
         REMOTE_DIR    = '/home/ec2-user/gokul_tfl'
+        PEM_KEY       = '/var/lib/jenkins/.ssh/gokul_key.pem'
 
         // ── Kafka / HBase ────────────────────────────────────────────────────
         KAFKA_BROKER  = 'ip-172-31-6-42.eu-west-2.compute.internal:9092'
@@ -39,227 +40,202 @@ pipeline {
         // ── 2. Create remote working directories ─────────────────────────────
         stage('Prepare Remote Directory') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            mkdir -p ${REMOTE_DIR}/kafka
-                            mkdir -p ${REMOTE_DIR}/spark
-                            mkdir -p ${REMOTE_DIR}/hive
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        mkdir -p ${REMOTE_DIR}/kafka
+                        mkdir -p ${REMOTE_DIR}/spark
+                        mkdir -p ${REMOTE_DIR}/hive
+                    '
+                """
             }
         }
 
         // ── 3. Copy scripts to Cloudera ──────────────────────────────────────
         stage('Copy Scripts to Cloudera') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        scp -o StrictHostKeyChecking=no \
-                            src/kafka/send_data_to_kafka.py \
-                            ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/kafka/
+                sh """
+                    scp -i ${PEM_KEY} -o StrictHostKeyChecking=no \
+                        src/kafka/send_data_to_kafka.py \
+                        ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/kafka/
 
-                        scp -o StrictHostKeyChecking=no \
-                            src/kafka/write_kafka_to_hbase.py \
-                            ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/kafka/
+                    scp -i ${PEM_KEY} -o StrictHostKeyChecking=no \
+                        src/kafka/write_kafka_to_hbase.py \
+                        ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/kafka/
 
-                        scp -o StrictHostKeyChecking=no \
-                            src/spark/spark_streaming_tfl.py \
-                            ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/spark/
+                    scp -i ${PEM_KEY} -o StrictHostKeyChecking=no \
+                        src/spark/spark_streaming_tfl.py \
+                        ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/spark/
 
-                        scp -o StrictHostKeyChecking=no \
-                            src/spark/hive_spark_table.sql \
-                            ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/hive/
-                    """
-                }
+                    scp -i ${PEM_KEY} -o StrictHostKeyChecking=no \
+                        src/spark/hive_spark_table.sql \
+                        ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/hive/
+                """
             }
         }
 
         // ── 4. Make Python scripts executable ───────────────────────────────
         stage('Set Permissions') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            chmod +x ${REMOTE_DIR}/kafka/*.py
-                            chmod +x ${REMOTE_DIR}/spark/*.py
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        chmod +x ${REMOTE_DIR}/kafka/*.py
+                        chmod +x ${REMOTE_DIR}/spark/*.py
+                    '
+                """
             }
         }
 
         // ── 5. Kill any previously running processes ─────────────────────────
         stage('Kill Previous Jobs') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            pkill -f send_data_to_kafka.py   || true
-                            pkill -f write_kafka_to_hbase.py || true
-                            pkill -f spark_streaming_tfl.py  || true
-                            sleep 5
-                            echo "Previous jobs cleared"
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        pkill -f send_data_to_kafka.py   || true
+                        pkill -f write_kafka_to_hbase.py || true
+                        pkill -f spark_streaming_tfl.py  || true
+                        sleep 5
+                        echo "Previous jobs cleared"
+                    '
+                """
             }
         }
 
         // ── 6. Clean and recreate HDFS directories ───────────────────────────
         stage('Prepare HDFS Directories') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            hdfs dfs -rm -r -f ${HDFS_OUTPUT}    || true
-                            hdfs dfs -rm -r -f ${HDFS_CHECKPOINT} || true
-                            hdfs dfs -mkdir -p ${HDFS_OUTPUT}
-                            hdfs dfs -mkdir -p ${HDFS_CHECKPOINT}
-                            hdfs dfs -chmod -R 777 /tmp/gokul
-                            echo "HDFS directories ready"
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        hdfs dfs -rm -r -f ${HDFS_OUTPUT}    || true
+                        hdfs dfs -rm -r -f ${HDFS_CHECKPOINT} || true
+                        hdfs dfs -mkdir -p ${HDFS_OUTPUT}
+                        hdfs dfs -mkdir -p ${HDFS_CHECKPOINT}
+                        hdfs dfs -chmod -R 777 /tmp/gokul
+                        echo "HDFS directories ready"
+                    '
+                """
             }
         }
 
         // ── 7. Start Kafka Producer (background) ─────────────────────────────
         stage('Start Kafka Producer') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            nohup python3 ${REMOTE_DIR}/kafka/send_data_to_kafka.py \
-                                > ${PRODUCER_LOG} 2>&1 &
-                            echo "Kafka Producer PID: \$!"
-                            sleep 20
-                            echo "=== Producer Log (first 20 lines) ==="
-                            head -20 ${PRODUCER_LOG} || true
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        nohup python3 ${REMOTE_DIR}/kafka/send_data_to_kafka.py \
+                            > ${PRODUCER_LOG} 2>&1 &
+                        echo "Kafka Producer PID: \$!"
+                        sleep 20
+                        echo "=== Producer Log (first 20 lines) ==="
+                        head -20 ${PRODUCER_LOG} || true
+                    '
+                """
             }
         }
 
         // ── 8. Start HBase Consumer (background) ─────────────────────────────
         stage('Start HBase Consumer') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            nohup python3 ${REMOTE_DIR}/kafka/write_kafka_to_hbase.py \
-                                > ${HBASE_LOG} 2>&1 &
-                            echo "HBase Consumer PID: \$!"
-                            sleep 15
-                            echo "=== HBase Consumer Log (first 15 lines) ==="
-                            head -15 ${HBASE_LOG} || true
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        nohup python3 ${REMOTE_DIR}/kafka/write_kafka_to_hbase.py \
+                            > ${HBASE_LOG} 2>&1 &
+                        echo "HBase Consumer PID: \$!"
+                        sleep 15
+                        echo "=== HBase Consumer Log (first 15 lines) ==="
+                        head -15 ${HBASE_LOG} || true
+                    '
+                """
             }
         }
 
         // ── 9. Start Spark Streaming (background) ────────────────────────────
         stage('Start Spark Streaming') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            nohup spark-submit \\
-                                --master local[2] \\
-                                --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.0 \\
-                                --conf spark.sql.parquet.writeLegacyFormat=true \\
-                                ${REMOTE_DIR}/spark/spark_streaming_tfl.py \
-                                > ${SPARK_LOG} 2>&1 &
-                            echo "Spark Streaming PID: \$!"
-                            sleep 90
-                            echo "=== Spark Streaming Log (first 40 lines) ==="
-                            head -40 ${SPARK_LOG} || true
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        nohup spark-submit \\
+                            --master local[2] \\
+                            --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.0 \\
+                            --conf spark.sql.parquet.writeLegacyFormat=true \\
+                            ${REMOTE_DIR}/spark/spark_streaming_tfl.py \
+                            > ${SPARK_LOG} 2>&1 &
+                        echo "Spark Streaming PID: \$!"
+                        sleep 90
+                        echo "=== Spark Streaming Log (first 40 lines) ==="
+                        head -40 ${SPARK_LOG} || true
+                    '
+                """
             }
         }
 
         // ── 10. Verify Kafka messages ─────────────────────────────────────────
         stage('Verify Kafka Messages') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            echo "=== Kafka Topic List ==="
-                            kafka-topics --list --bootstrap-server ${KAFKA_BROKER} \
-                                | grep ${KAFKA_TOPIC} || echo "Topic not found yet"
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        echo "=== Kafka Topic List ==="
+                        kafka-topics --list --bootstrap-server ${KAFKA_BROKER} \
+                            | grep ${KAFKA_TOPIC} || echo "Topic not found yet"
 
-                            echo "=== Message Count in ${KAFKA_TOPIC} ==="
-                            kafka-run-class kafka.tools.GetOffsetShell \
-                                --broker-list ${KAFKA_BROKER} \
-                                --topic ${KAFKA_TOPIC} \
-                                --time -1 2>/dev/null \
-                                | python3 -c "import sys; lines=sys.stdin.read().strip().splitlines(); total=sum(int(l.split(chr(58))[2]) for l in lines if l.count(chr(58))==2); print(chr(84)+chr(111)+chr(116)+chr(97)+chr(108)+chr(32)+chr(109)+chr(101)+chr(115)+chr(115)+chr(97)+chr(103)+chr(101)+chr(115)+chr(58), total)" || true
-                        '
-                    """
-                }
+                        echo "=== Message Count in ${KAFKA_TOPIC} ==="
+                        kafka-run-class kafka.tools.GetOffsetShell \
+                            --broker-list ${KAFKA_BROKER} \
+                            --topic ${KAFKA_TOPIC} \
+                            --time -1 2>/dev/null \
+                            | python3 -c "import sys; lines=sys.stdin.read().strip().splitlines(); total=sum(int(l.split(chr(58))[2]) for l in lines if l.count(chr(58))==2); print(\"Total messages:\", total)" || true
+                    '
+                """
             }
         }
 
         // ── 11. Verify HBase records ──────────────────────────────────────────
         stage('Verify HBase Records') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            echo "=== HBase Table: ${HBASE_TABLE} ==="
-                            echo "count '"'"'${HBASE_TABLE}'"'"', INTERVAL => 200000" \
-                                | hbase shell -n 2>/dev/null | tail -5 || true
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        echo "=== HBase Table: ${HBASE_TABLE} ==="
+                        echo "count '"'"'${HBASE_TABLE}'"'"', INTERVAL => 200000" \
+                            | hbase shell -n 2>/dev/null | tail -5 || true
+                    '
+                """
             }
         }
 
         // ── 12. Create Hive table over streaming output ───────────────────────
         stage('Create Hive Table') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            beeline -u "jdbc:hive2://localhost:10000" \
-                                    -f ${REMOTE_DIR}/hive/hive_spark_table.sql \
-                                    2>/dev/null
-                        '
-                    """
-                }
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        beeline -u "jdbc:hive2://localhost:10000" \
+                                -f ${REMOTE_DIR}/hive/hive_spark_table.sql \
+                                2>/dev/null
+                    '
+                """
             }
         }
 
         // ── 13. Analyse logs from all components ──────────────────────────────
         stage('Analyse Logs') {
             steps {
-                sshagent(credentials: ['ec2-pem-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                            echo "====== PRODUCER LOG (last 20) ======"
-                            tail -20 ${PRODUCER_LOG}  || echo "No producer log"
+                sh """
+                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        echo "====== PRODUCER LOG (last 20) ======"
+                        tail -20 ${PRODUCER_LOG}  || echo "No producer log"
 
-                            echo "====== HBASE CONSUMER LOG (last 20) ======"
-                            tail -20 ${HBASE_LOG}      || echo "No HBase log"
+                        echo "====== HBASE CONSUMER LOG (last 20) ======"
+                        tail -20 ${HBASE_LOG}      || echo "No HBase log"
 
-                            echo "====== SPARK STREAMING LOG (last 30) ======"
-                            tail -30 ${SPARK_LOG}      || echo "No Spark log"
+                        echo "====== SPARK STREAMING LOG (last 30) ======"
+                        tail -30 ${SPARK_LOG}      || echo "No Spark log"
 
-                            echo "====== HDFS OUTPUT ======"
-                            hdfs dfs -ls ${HDFS_OUTPUT} || echo "No HDFS output yet"
-                        '
-                    """
-                }
+                        echo "====== HDFS OUTPUT ======"
+                        hdfs dfs -ls ${HDFS_OUTPUT} || echo "No HDFS output yet"
+                    '
+                """
             }
         }
     }
 
-    // ── Post-pipeline reporting ───────────────────────────────────────────────
     post {
         success {
             echo """
@@ -279,7 +255,7 @@ pipeline {
             echo """
             ╔══════════════════════════════════════════════════════╗
             ║       TFL Streaming Pipeline  ─  FAILED              ║
-            ╠══════════════════════════════════════════════════════╣
+            ╠══════════════════════════════════════════════════════╝
             ║  Diagnose on remote host:                            ║
             ║    tail -50 ${PRODUCER_LOG}                          ║
             ║    tail -50 ${HBASE_LOG}                             ║
