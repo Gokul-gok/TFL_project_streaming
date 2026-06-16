@@ -89,13 +89,12 @@ pipeline {
         stage('Kill Previous Jobs') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                        pkill -f send_data_to_kafka.py   || true
-                        pkill -f write_kafka_to_hbase.py || true
-                        pkill -f spark_streaming_tfl.py  || true
-                        sleep 5
-                        echo "Previous jobs cleared"
-                    '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=3 \
+                        ${REMOTE_USER}@${REMOTE_HOST} \
+                        'pkill -f send_data_to_kafka.py || true; pkill -f write_kafka_to_hbase.py || true; pkill -f spark_streaming_tfl.py || true; echo "Previous jobs cleared"' || true
                 """
             }
         }
@@ -104,7 +103,11 @@ pipeline {
         stage('Prepare HDFS Directories') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=3 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         hdfs dfs -rm -r -f ${HDFS_OUTPUT}    || true
                         hdfs dfs -rm -r -f ${HDFS_CHECKPOINT} || true
                         hdfs dfs -mkdir -p ${HDFS_OUTPUT}
@@ -120,7 +123,11 @@ pipeline {
         stage('Start Kafka Producer') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=6 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         nohup python3 ${REMOTE_DIR}/kafka/send_data_to_kafka.py \
                             > ${PRODUCER_LOG} 2>&1 &
                         echo "Kafka Producer PID: \$!"
@@ -136,7 +143,11 @@ pipeline {
         stage('Start HBase Consumer') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=5 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         nohup python3 ${REMOTE_DIR}/kafka/write_kafka_to_hbase.py \
                             > ${HBASE_LOG} 2>&1 &
                         echo "HBase Consumer PID: \$!"
@@ -152,10 +163,14 @@ pipeline {
         stage('Start Spark Streaming') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=15 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         nohup spark-submit \\
                             --master local[2] \\
-                            --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.0 \\
+                            --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 \\
                             --conf spark.sql.parquet.writeLegacyFormat=true \\
                             ${REMOTE_DIR}/spark/spark_streaming_tfl.py \
                             > ${SPARK_LOG} 2>&1 &
@@ -172,7 +187,11 @@ pipeline {
         stage('Verify Kafka Messages') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=3 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         echo "=== Kafka Topic List ==="
                         kafka-topics --list --bootstrap-server ${KAFKA_BROKER} \
                             | grep ${KAFKA_TOPIC} || echo "Topic not found yet"
@@ -192,7 +211,11 @@ pipeline {
         stage('Verify HBase Records') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=3 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         echo "=== HBase Table: ${HBASE_TABLE} ==="
                         echo "count '"'"'${HBASE_TABLE}'"'"', INTERVAL => 200000" \
                             | hbase shell -n 2>/dev/null | tail -5 || true
@@ -205,7 +228,11 @@ pipeline {
         stage('Create Hive Table') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=3 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         beeline -u "jdbc:hive2://localhost:10000" \
                                 -f ${REMOTE_DIR}/hive/hive_spark_table.sql \
                                 2>/dev/null
@@ -218,7 +245,11 @@ pipeline {
         stage('Analyse Logs') {
             steps {
                 sh """
-                    ssh -i ${PEM_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i ${PEM_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=3 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         echo "====== PRODUCER LOG (last 20) ======"
                         tail -20 ${PRODUCER_LOG}  || echo "No producer log"
 

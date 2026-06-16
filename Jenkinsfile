@@ -6,7 +6,7 @@ pipeline {
         REMOTE_HOST    = '13.41.167.97'
         REMOTE_USER    = 'ec2-user'
         REMOTE_DIR     = '/home/ec2-user/gokul_tfl'
-        PEM_KEY        = 'C:/Users/gokul/Downloads/Assignments/test_key.pem'
+        PEM_KEY        = '/var/lib/jenkins/.ssh/gokul_key.pem'
 
         // ── PostgreSQL (source) ──────────────────────────────────────────────
         PG_HOST        = '13.42.152.118'
