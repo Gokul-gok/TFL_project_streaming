@@ -7,7 +7,7 @@ analytics Parquet datasets in the HDFS gold layer.
 
 from pyspark.sql import SparkSession
 
-GOLD_BASE = '/tmp/gokul/tfl_project1/gold'
+GOLD_BASE = '/tmp/gokul_batch/tfl_project1/gold'
 HIVE_DB   = 'gokul_tfl_proj'
 
 

@@ -15,7 +15,7 @@ CREATE EXTERNAL TABLE gokul_tfl_proj.dim_date (
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '/tmp/gokul/tfl_project1/dim_date'
+LOCATION '/tmp/gokul_batch/tfl_project1/dim_date'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
 -- ── Dimension: Lines ─────────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ CREATE EXTERNAL TABLE gokul_tfl_proj.dim_lines (
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '/tmp/gokul/tfl_project1/dim_lines'
+LOCATION '/tmp/gokul_batch/tfl_project1/dim_lines'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
 -- ── Dimension: Networks ──────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ CREATE EXTERNAL TABLE gokul_tfl_proj.dim_networks (
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '/tmp/gokul/tfl_project1/dim_networks'
+LOCATION '/tmp/gokul_batch/tfl_project1/dim_networks'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
 -- ── Dimension: Stations ──────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ CREATE EXTERNAL TABLE gokul_tfl_proj.dim_stations (
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '/tmp/gokul/tfl_project1/dim_stations'
+LOCATION '/tmp/gokul_batch/tfl_project1/dim_stations'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
 -- ── Fact: Station Lines ──────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ CREATE EXTERNAL TABLE gokul_tfl_proj.fact_station_lines (
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '/tmp/gokul/tfl_project1/fact_station_lines'
+LOCATION '/tmp/gokul_batch/tfl_project1/fact_station_lines'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
 -- ── Fact: Passenger Entry / Exit ─────────────────────────────────────────────
@@ -82,7 +82,7 @@ CREATE EXTERNAL TABLE gokul_tfl_proj.fact_passenger_entry_exit (
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '/tmp/gokul/tfl_project1/fact_passenger_entry_exit'
+LOCATION '/tmp/gokul_batch/tfl_project1/fact_passenger_entry_exit'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
 -- ── Incremental watermark (tracks last processed year) ───────────────────────
@@ -91,7 +91,7 @@ CREATE TABLE gokul_tfl_proj.incremental_watermark (
     last_processed_year INT
 )
 STORED AS PARQUET
-LOCATION '/tmp/gokul/tfl_project1/watermark';
+LOCATION '/tmp/gokul_batch/tfl_project1/watermark';
 
 -- ── Quick validation ─────────────────────────────────────────────────────────
 SELECT 'dim_date',                COUNT(*) FROM gokul_tfl_proj.dim_date

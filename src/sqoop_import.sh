@@ -6,7 +6,7 @@ PG_PORT="5432"
 PG_DB="testdb"
 PG_USER="admin"
 PG_PASS="admin123"
-HDFS_BASE="/tmp/gokul/tfl_project1"
+HDFS_BASE="/tmp/gokul_batch/tfl_project1"
 JDBC="jdbc:postgresql://${PG_HOST}:${PG_PORT}/${PG_DB}"
 
 TABLES=(

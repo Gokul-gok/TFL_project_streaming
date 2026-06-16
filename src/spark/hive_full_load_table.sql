@@ -20,7 +20,7 @@ CREATE EXTERNAL TABLE gokul_tfl_proj.tfl_full_load (
 )
 PARTITIONED BY (lineName_part STRING, arrival_date STRING)
 STORED AS PARQUET
-LOCATION '/tmp/gokul/tfl_full_load/output';
+LOCATION '/tmp/gokul_batch/tfl_full_load/output';
 
 -- Auto-register partitions from HDFS
 MSCK REPAIR TABLE gokul_tfl_proj.tfl_full_load;

@@ -14,7 +14,7 @@ from pyspark.sql.types import (
 
 KAFKA_BROKER = 'ip-172-31-6-42.eu-west-2.compute.internal:9092'
 KAFKA_TOPIC  = 'tfl_arrivals'
-HDFS_OUTPUT  = '/tmp/gokul/tfl_full_load/output'
+HDFS_OUTPUT  = '/tmp/gokul_batch/tfl_full_load/output'
 
 SCHEMA = StructType([
     StructField("id",              StringType(),  True),

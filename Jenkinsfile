@@ -16,9 +16,9 @@ pipeline {
         PG_PASS        = 'admin123'
 
         // ── HDFS paths ───────────────────────────────────────────────────────
-        HDFS_STAGING   = '/tmp/gokul/tfl_project1'
-        HDFS_GOLD      = '/tmp/gokul/tfl_project1/gold'
-        HDFS_FULL_LOAD = '/tmp/gokul/tfl_full_load/output'
+        HDFS_STAGING   = '/tmp/gokul_batch/tfl_project1'
+        HDFS_GOLD      = '/tmp/gokul_batch/tfl_project1/gold'
+        HDFS_FULL_LOAD = '/tmp/gokul_batch/tfl_full_load/output'
 
         // ── Hive ─────────────────────────────────────────────────────────────
         HIVE_DB        = 'gokul_tfl_proj'
@@ -95,7 +95,7 @@ pipeline {
                         hdfs dfs -mkdir -p ${HDFS_STAGING}
                         hdfs dfs -mkdir -p ${HDFS_GOLD}
                         hdfs dfs -mkdir -p ${HDFS_FULL_LOAD}
-                        hdfs dfs -chmod -R 777 /tmp/gokul
+                        hdfs dfs -chmod -R 777 /tmp/gokul_batch || true
                     '
                 """
             }
@@ -114,7 +114,7 @@ pipeline {
 
                         hdfs dfs -mkdir -p ${HDFS_GOLD}
                         hdfs dfs -mkdir -p ${HDFS_FULL_LOAD}
-                        hdfs dfs -chmod -R 777 /tmp/gokul
+                        hdfs dfs -chmod -R 777 /tmp/gokul_batch || true
                         echo "HDFS cleaned and ready"
                     '
                 """
