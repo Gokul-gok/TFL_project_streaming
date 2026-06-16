@@ -92,16 +92,16 @@ def main():
         ORDER  BY d.year, d.quarter
     """)
 
-    # 7. Night Tube vs Day Tube Passenger Metrics
+    # 7. Active vs Inactive Line Passenger Metrics
     write_table(spark, "night_tube_metrics", """
         SELECT l.line_name,
-               l.is_night_tube,
+               l.is_active,
                SUM(f.total_entry_exit) AS total_passengers
         FROM   fact_passenger_entry_exit f
         JOIN   fact_station_lines sl ON f.station_id = sl.station_id
         JOIN   dim_lines l           ON sl.line_id   = l.line_id
-        GROUP  BY l.line_name, l.is_night_tube
-        ORDER  BY l.is_night_tube DESC, total_passengers DESC
+        GROUP  BY l.line_name, l.is_active
+        ORDER  BY l.is_active DESC, total_passengers DESC
     """)
 
     print(f"\nGold layer complete → {GOLD_BASE}")

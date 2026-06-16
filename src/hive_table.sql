@@ -21,9 +21,12 @@ TBLPROPERTIES ('skip.header.line.count'='1');
 -- ── Dimension: Lines ─────────────────────────────────────────────────────────
 DROP TABLE IF EXISTS gokul_tfl_proj.dim_lines;
 CREATE EXTERNAL TABLE gokul_tfl_proj.dim_lines (
-    line_id       INT,
-    line_name     STRING,
-    is_night_tube TINYINT
+    line_id      INT,
+    line_name    STRING,
+    line_colour  STRING,
+    is_active    TINYINT,
+    created_ts   STRING,
+    updated_ts   STRING
 )
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
@@ -68,9 +71,13 @@ TBLPROPERTIES ('skip.header.line.count'='1');
 -- ── Fact: Station Lines ──────────────────────────────────────────────────────
 DROP TABLE IF EXISTS gokul_tfl_proj.fact_station_lines;
 CREATE EXTERNAL TABLE gokul_tfl_proj.fact_station_lines (
-    station_id     INT,
-    line_id        INT,
-    is_interchange INT
+    station_line_id INT,
+    station_id      INT,
+    line_id         INT,
+    is_interchange  INT,
+    effective_from  STRING,
+    effective_to    STRING,
+    created_at      STRING
 )
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
