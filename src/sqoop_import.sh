@@ -8,6 +8,8 @@ PG_USER="admin"
 PG_PASS="admin123"
 HDFS_BASE="/tmp/gokul_batch/tfl_project1"
 JDBC="jdbc:postgresql://${PG_HOST}:${PG_PORT}/${PG_DB}"
+MAX_RETRIES=3
+RETRY_WAIT=15
 
 TABLES=(
     "dim_date"
@@ -18,8 +20,8 @@ TABLES=(
     "fact_passenger_entry_exit"
 )
 
-for TABLE in "${TABLES[@]}"; do
-    echo ">>> Importing ${TABLE} ..."
+import_table() {
+    local TABLE=$1
     sqoop import \
         --connect "${JDBC}" \
         --username "${PG_USER}" \
@@ -31,11 +33,30 @@ for TABLE in "${TABLES[@]}"; do
         --fields-terminated-by ',' \
         --lines-terminated-by '\n' \
         -m 1
+}
 
-    if [ $? -eq 0 ]; then
-        echo ">>> ${TABLE} imported successfully"
-    else
-        echo ">>> ERROR: Failed to import ${TABLE}" >&2
+for TABLE in "${TABLES[@]}"; do
+    echo ">>> Importing ${TABLE} ..."
+    ATTEMPT=0
+    SUCCESS=false
+
+    while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+        ATTEMPT=$((ATTEMPT + 1))
+        echo "    Attempt ${ATTEMPT}/${MAX_RETRIES} ..."
+        if import_table "${TABLE}"; then
+            echo ">>> ${TABLE} imported successfully"
+            SUCCESS=true
+            break
+        else
+            if [ $ATTEMPT -lt $MAX_RETRIES ]; then
+                echo "    Attempt ${ATTEMPT} failed. Waiting ${RETRY_WAIT}s before retry..."
+                sleep ${RETRY_WAIT}
+            fi
+        fi
+    done
+
+    if [ "${SUCCESS}" != "true" ]; then
+        echo ">>> ERROR: Failed to import ${TABLE} after ${MAX_RETRIES} attempts" >&2
         exit 1
     fi
 done
