@@ -57,6 +57,8 @@ pipeline {
                 sh """
                     scp -i "${PEM_KEY}" -o StrictHostKeyChecking=no \
                         src/sqoop_import.sh \
+                        src/sqoop_incremental.sh \
+                        src/save_watermark.sh \
                         ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/sqoop/
 
                     scp -i "${PEM_KEY}" -o StrictHostKeyChecking=no \
@@ -66,6 +68,7 @@ pipeline {
                     scp -i "${PEM_KEY}" -o StrictHostKeyChecking=no \
                         src/spark/spark_gold_layer.py \
                         src/spark/spark_full_load_tfl.py \
+                        src/spark/spark_incremental_load.py \
                         ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/spark/
 
                     scp -i "${PEM_KEY}" -o StrictHostKeyChecking=no \
@@ -80,7 +83,7 @@ pipeline {
             steps {
                 sh """
                     ssh -i "${PEM_KEY}" -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
-                        chmod +x ${REMOTE_DIR}/sqoop/sqoop_import.sh
+                        chmod +x ${REMOTE_DIR}/sqoop/*.sh
                         chmod +x ${REMOTE_DIR}/spark/*.py
                     '
                 """
@@ -223,6 +226,79 @@ pipeline {
                         beeline -u "jdbc:hive2://localhost:10000" \
                             -e "SELECT COUNT(*) FROM ${HIVE_DB}.tfl_full_load;" \
                             2>/dev/null | tail -5 || true
+                    '
+                """
+            }
+        }
+
+        // ── 13. Save watermarks for next incremental run ──────────────────────
+        stage('Save Watermark') {
+            steps {
+                sh """
+                    ssh -i "${PEM_KEY}" \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=6 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
+                        bash ${REMOTE_DIR}/sqoop/save_watermark.sh
+                    '
+                """
+            }
+        }
+
+        // ── 14. Incremental Sqoop (new fact rows only) ────────────────────────
+        stage('Run Incremental Sqoop') {
+            steps {
+                sh """
+                    ssh -i "${PEM_KEY}" \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=12 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
+                        bash ${REMOTE_DIR}/sqoop/sqoop_incremental.sh
+                    '
+                """
+            }
+        }
+
+        // ── 15. Incremental Spark load (new Kafka messages only) ──────────────
+        stage('Run Spark Incremental Load') {
+            steps {
+                sh """
+                    ssh -i "${PEM_KEY}" \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=30 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
+                        spark-submit \
+                            --master local[*] \
+                            --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 \
+                            --conf spark.sql.parquet.writeLegacyFormat=true \
+                            --conf spark.sql.shuffle.partitions=4 \
+                            ${REMOTE_DIR}/spark/spark_incremental_load.py
+                    '
+                """
+            }
+        }
+
+        // ── 16. Verify incremental results ────────────────────────────────────
+        stage('Verify Incremental Results') {
+            steps {
+                sh """
+                    ssh -i "${PEM_KEY}" -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        echo "=== Incremental Sqoop output ==="
+                        hdfs dfs -ls /tmp/gokul_batch/tfl_incremental/fact_passenger_entry_exit || echo "No incremental Sqoop data"
+                        SQOOP_COUNT=\$(hdfs dfs -cat /tmp/gokul_batch/tfl_incremental/fact_passenger_entry_exit/part-* 2>/dev/null | wc -l)
+                        echo "New fact rows: \${SQOOP_COUNT}"
+
+                        echo "=== Incremental Spark output ==="
+                        hdfs dfs -ls /tmp/gokul_batch/tfl_incremental/kafka_output || echo "No incremental Spark data"
+
+                        echo "=== Current watermarks ==="
+                        echo -n "last_entry_exit_id: "
+                        hdfs dfs -cat /tmp/gokul_batch/watermark/last_entry_exit_id 2>/dev/null || echo "not set"
+                        echo -n "kafka_offsets: "
+                        hdfs dfs -cat /tmp/gokul_batch/watermark/kafka_offsets.json 2>/dev/null || echo "not set"
                     '
                 """
             }
