@@ -13,7 +13,7 @@ from kafka import KafkaConsumer
 from datetime import datetime
 
 logging.basicConfig(
-    filename='/tmp/hbase_consumer.log',
+    filename='/tmp/gokul_hbase_consumer.log',
     level=logging.INFO,
     format='%(asctime)s %(levelname)s %(message)s'
 )

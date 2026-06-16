@@ -112,7 +112,7 @@ pipeline {
                         hdfs dfs -rm -r -f ${HDFS_CHECKPOINT} || true
                         hdfs dfs -mkdir -p ${HDFS_OUTPUT}
                         hdfs dfs -mkdir -p ${HDFS_CHECKPOINT}
-                        hdfs dfs -chmod -R 777 /tmp/gokul
+                        hdfs dfs -chmod -R 777 /tmp/gokul || true
                         echo "HDFS directories ready"
                     '
                 """
@@ -201,7 +201,7 @@ pipeline {
                             --broker-list ${KAFKA_BROKER} \
                             --topic ${KAFKA_TOPIC} \
                             --time -1 2>/dev/null \
-                            | python3 -c "import sys; lines=sys.stdin.read().strip().splitlines(); total=sum(int(l.split(chr(58))[2]) for l in lines if l.count(chr(58))==2); print(\"Total messages:\", total)" || true
+                            | python3 -c "import sys; lines=sys.stdin.read().strip().splitlines(); total=sum(int(l.split(chr(58))[2]) for l in lines if l.count(chr(58))==2); print(total)" || true
                     '
                 """
             }
@@ -235,7 +235,7 @@ pipeline {
                         ${REMOTE_USER}@${REMOTE_HOST} '
                         beeline -u "jdbc:hive2://localhost:10000" \
                                 -f ${REMOTE_DIR}/hive/hive_spark_table.sql \
-                                2>/dev/null
+                                2>/dev/null || true
                     '
                 """
             }

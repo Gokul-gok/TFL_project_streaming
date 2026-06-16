@@ -14,7 +14,7 @@ from kafka import KafkaProducer
 from datetime import datetime
 
 logging.basicConfig(
-    filename='/tmp/producer_success.log',
+    filename='/tmp/gokul_producer_success.log',
     level=logging.INFO,
     format='%(asctime)s %(levelname)s %(message)s'
 )
