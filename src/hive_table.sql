@@ -47,9 +47,17 @@ TBLPROPERTIES ('skip.header.line.count'='1');
 DROP TABLE IF EXISTS gokul_tfl_proj.dim_stations;
 CREATE EXTERNAL TABLE gokul_tfl_proj.dim_stations (
     station_id   INT,
+    station_code STRING,
     station_name STRING,
     network_id   INT,
-    service_type STRING
+    flag_1       STRING,
+    flag_2       STRING,
+    flag_3       STRING,
+    flag_4       STRING,
+    flag_5       STRING,
+    flag_6       STRING,
+    created_ts   STRING,
+    updated_ts   STRING
 )
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
@@ -73,11 +81,15 @@ TBLPROPERTIES ('skip.header.line.count'='1');
 -- ── Fact: Passenger Entry / Exit ─────────────────────────────────────────────
 DROP TABLE IF EXISTS gokul_tfl_proj.fact_passenger_entry_exit;
 CREATE EXTERNAL TABLE gokul_tfl_proj.fact_passenger_entry_exit (
-    entry_exit_id BIGINT,
-    station_id    INT,
-    date_id       INT,
-    entry_count   BIGINT,
-    exit_count    BIGINT
+    entry_exit_id     BIGINT,
+    station_id        INT,
+    date_id           INT,
+    total_entry_exit  BIGINT,
+    estimated_entries BIGINT,
+    estimated_exits   BIGINT,
+    record_type       STRING,
+    data_source       STRING,
+    created_at        STRING
 )
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
