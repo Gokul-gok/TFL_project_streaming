@@ -128,7 +128,7 @@ pipeline {
                         -o ServerAliveInterval=10 \
                         -o ServerAliveCountMax=6 \
                         ${REMOTE_USER}@${REMOTE_HOST} '
-                        nohup python3 ${REMOTE_DIR}/kafka/send_data_to_kafka.py \
+                        nohup env PYTHONUNBUFFERED=1 python3 ${REMOTE_DIR}/kafka/send_data_to_kafka.py \
                             > ${PRODUCER_LOG} 2>&1 &
                         echo "Kafka Producer PID: \$!"
                         sleep 20

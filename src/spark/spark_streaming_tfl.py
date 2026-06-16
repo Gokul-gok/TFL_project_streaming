@@ -41,6 +41,11 @@ def main():
 
     spark.sparkContext.setLogLevel("WARN")
 
+    # Ensure checkpoint root exists before the query starts
+    hadoop_conf = spark.sparkContext._jsc.hadoopConfiguration()
+    fs = spark._jvm.org.apache.hadoop.fs.FileSystem.get(hadoop_conf)
+    fs.mkdirs(spark._jvm.org.apache.hadoop.fs.Path(CHECKPOINT))
+
     raw = spark.readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", KAFKA_BROKER) \
