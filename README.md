@@ -105,20 +105,6 @@ flowchart TD
 
 ---
 
-## Infrastructure
-
-| Component | Value |
-|---|---|
-| Jenkins | `51.24.13.205:8081` |
-| Cloudera EC2 | `13.41.167.97` (ec2-user) |
-| PostgreSQL | `13.42.152.118:5432 / testdb` |
-| Kafka Broker | `ip-172-31-6-42.eu-west-2.compute.internal:9092` |
-| Kafka Topic | `tfl_arrivals` |
-| HBase Table | `tfl_arrivals` |
-| Hive Database | `gokul_tfl_proj` |
-
----
-
 ## File Structure
 
 ```
@@ -142,54 +128,3 @@ TFL_project_streaming/
     └── hive_table.sql                  # Hive DDL: star schema tables
 ```
 
----
-
-## HDFS Paths
-
-| Pipeline | Path | Contents |
-|---|---|---|
-| Streaming | `/tmp/gokul/tfl_spark_streaming/output` | Streaming Parquet output |
-| Streaming | `/tmp/gokul/tfl_spark_streaming/checkpoint` | Spark checkpoint |
-| Batch | `/tmp/gokul_batch/tfl_project1/dim_date` | Sqoop: dim_date |
-| Batch | `/tmp/gokul_batch/tfl_project1/dim_stations` | Sqoop: dim_stations |
-| Batch | `/tmp/gokul_batch/tfl_project1/dim_networks` | Sqoop: dim_networks |
-| Batch | `/tmp/gokul_batch/tfl_project1/dim_lines` | Sqoop: dim_lines |
-| Batch | `/tmp/gokul_batch/tfl_project1/fact_station_lines` | Sqoop: fact_station_lines |
-| Batch | `/tmp/gokul_batch/tfl_project1/fact_passenger_entry_exit` | Sqoop: fact table |
-| Batch | `/tmp/gokul_batch/tfl_project1/gold/` | Gold layer (7 Parquet aggregations) |
-| Batch | `/tmp/gokul_batch/tfl_full_load/output` | Kafka full load Parquet |
-| Batch | `/tmp/gokul_batch/watermark/last_entry_exit_id` | Sqoop watermark |
-| Batch | `/tmp/gokul_batch/watermark/kafka_offsets.json` | Kafka offset watermark |
-| Batch | `/tmp/gokul_batch/tfl_incremental/fact_passenger_entry_exit` | Incremental Sqoop output |
-| Batch | `/tmp/gokul_batch/tfl_incremental/kafka_output` | Incremental Spark output |
-
----
-
-## Hive Tables (`gokul_tfl_proj`)
-
-| Table | Pipeline | Description |
-|---|---|---|
-| `dim_date` | Batch | Date dimension |
-| `dim_stations` | Batch | Station dimension (12 cols) |
-| `dim_networks` | Batch | Network dimension |
-| `dim_lines` | Batch | Line dimension |
-| `fact_station_lines` | Batch | Station–line bridge table |
-| `fact_passenger_entry_exit` | Batch | Passenger entry/exit fact table |
-| `tfl_full_load` | Batch | Kafka full load (partitioned by lineName, date) |
-| `tfl_spark_arrivals` | Streaming | Spark structured streaming output |
-
----
-
-## Log Paths
-
-| Location | Path | Contents |
-|---|---|---|
-| EC2 host | `/tmp/gokul_producer.log` | Kafka producer output |
-| EC2 host | `/tmp/gokul_hbase.log` | HBase consumer output |
-| EC2 host | `/tmp/gokul_spark_streaming.log` | Spark streaming job output |
-| Jenkins UI | `http://51.24.13.205:8081/job/streaming_gokul/<build>/console` | Streaming build log |
-| Jenkins UI | `http://51.24.13.205:8081/job/batch_gokul/<build>/console` | Batch build log |
-| Jenkins server | `/var/lib/jenkins/jobs/streaming_gokul/builds/<N>/log` | Raw streaming log file |
-| Jenkins server | `/var/lib/jenkins/jobs/batch_gokul/builds/<N>/log` | Raw batch log file |
-| HDFS | `hdfs:///user/spark/applicationHistory/` | Spark application event history |
-| HDFS | `hdfs:///user/spark/driverLogs/` | Spark driver logs |
