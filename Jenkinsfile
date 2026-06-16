@@ -136,10 +136,14 @@ pipeline {
         stage('Create Hive Tables') {
             steps {
                 sh """
-                    ssh -i "${PEM_KEY}" -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i "${PEM_KEY}" \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=6 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         beeline -u "jdbc:hive2://localhost:10000" \
                                 -f ${REMOTE_DIR}/hive/hive_table.sql \
-                                2>/dev/null
+                                2>/dev/null || true
                     '
                 """
             }
@@ -149,7 +153,11 @@ pipeline {
         stage('Run Spark Gold Layer') {
             steps {
                 sh """
-                    ssh -i "${PEM_KEY}" -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i "${PEM_KEY}" \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=30 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         spark-submit \
                             --master local[*] \
                             --conf spark.sql.parquet.writeLegacyFormat=true \
@@ -164,10 +172,14 @@ pipeline {
         stage('Run Spark Full Load') {
             steps {
                 sh """
-                    ssh -i "${PEM_KEY}" -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i "${PEM_KEY}" \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=30 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         spark-submit \
                             --master local[*] \
-                            --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.0 \
+                            --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 \
                             --conf spark.sql.parquet.writeLegacyFormat=true \
                             --conf spark.sql.shuffle.partitions=4 \
                             ${REMOTE_DIR}/spark/spark_full_load_tfl.py
@@ -180,10 +192,14 @@ pipeline {
         stage('Create Hive Full Load Table') {
             steps {
                 sh """
-                    ssh -i "${PEM_KEY}" -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -i "${PEM_KEY}" \
+                        -o StrictHostKeyChecking=no \
+                        -o ServerAliveInterval=10 \
+                        -o ServerAliveCountMax=6 \
+                        ${REMOTE_USER}@${REMOTE_HOST} '
                         beeline -u "jdbc:hive2://localhost:10000" \
                                 -f ${REMOTE_DIR}/hive/hive_full_load_table.sql \
-                                2>/dev/null
+                                2>/dev/null || true
                     '
                 """
             }
