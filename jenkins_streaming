@@ -11,7 +11,7 @@ pipeline {
         // ── Kafka / HBase ────────────────────────────────────────────────────
         KAFKA_BROKER  = 'ip-172-31-6-42.eu-west-2.compute.internal:9092'
         KAFKA_TOPIC   = 'tfl_arrivals'
-        HBASE_TABLE   = 'tfl_arrivals'
+        HBASE_TABLE   = 'gokul_tfl_arrivals'
 
         // ── Hive ─────────────────────────────────────────────────────────────
         HIVE_DB       = 'gokul_tfl_proj'
@@ -99,7 +99,7 @@ pipeline {
             }
         }
 
-        // ── 6. Clean and recreate HDFS directories ───────────────────────────
+        // ── 6. Clean and recreate HDFS directories + HBase table ────────────
         stage('Prepare HDFS Directories') {
             steps {
                 sh """
@@ -114,6 +114,10 @@ pipeline {
                         hdfs dfs -mkdir -p ${HDFS_CHECKPOINT}
                         hdfs dfs -chmod -R 777 /tmp/gokul || true
                         echo "HDFS directories ready"
+
+                        echo "Creating HBase table ${HBASE_TABLE} if not exists ..."
+                        echo "create '"'"'${HBASE_TABLE}'"'"', '"'"'cf'"'"'" | hbase shell -n 2>/dev/null || true
+                        echo "HBase table ready"
                     '
                 """
             }

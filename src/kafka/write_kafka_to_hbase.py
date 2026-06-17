@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 KAFKA_BROKER = 'ip-172-31-6-42.eu-west-2.compute.internal:9092'
 KAFKA_TOPIC  = 'tfl_arrivals'
-HBASE_TABLE  = 'tfl_arrivals'
+HBASE_TABLE  = 'gokul_tfl_arrivals'
 BATCH_SIZE   = 20
 
 

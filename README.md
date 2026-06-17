@@ -14,7 +14,7 @@ flowchart LR
     PROD["Python Kafka Producer\nnohup · background"]
     KAFKA[("Kafka\ntopic: tfl_arrivals")]
     SPARK["Spark Structured Streaming\nspark_streaming_tfl.py"]
-    HBASE[("HBase\ntable: tfl_arrivals")]
+    HBASE[("HBase\ntable: gokul_tfl_arrivals")]
     OUT[("HDFS Output\nParquet")]
     CHKPT[("HDFS Checkpoint")]
     HIVE_S[("Hive\ntfl_spark_arrivals")]
@@ -75,7 +75,7 @@ flowchart TD
 | 5 | Kill Previous Jobs | `pkill` any lingering producer/consumer/Spark processes |
 | 6 | Prepare HDFS Directories | Clean and recreate output + checkpoint dirs |
 | 7 | Start Kafka Producer | `nohup` TFL API → Kafka topic `tfl_arrivals` |
-| 8 | Start HBase Consumer | `nohup` Kafka → HBase table `tfl_arrivals` |
+| 8 | Start HBase Consumer | `nohup` Kafka → HBase table `gokul_tfl_arrivals` |
 | 9 | Start Spark Streaming | `nohup spark-submit` Kafka → HDFS Parquet (micro-batch) |
 | 10 | Verify Kafka Messages | Print message count in topic |
 | 11 | Verify HBase Records | `count` on HBase table |
