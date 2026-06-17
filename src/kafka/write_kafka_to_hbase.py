@@ -59,8 +59,9 @@ def write_batch_to_hbase(batch):
         result = subprocess.run(
             ['hbase', 'shell', '-n'],
             input=hbase_input,
-            capture_output=True,
-            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
             timeout=60
         )
         if result.returncode != 0:
